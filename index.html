@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<!--
+Written by Malcolm Kyle McCullum
+For the purpose of Green Mountain Technology interview project - 10-20-2016
+Main library used for graphing is done through D3
+API Documentation: https://github.com/d3/d3/blob/master/API.md
+Tool-tip example for tips of bar graphs: http://bl.ocks.org/Caged/6476579
+-->
+<head>
+  
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script type="text/javascript" src="d3-tip.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<style>
+
+.bar {
+  fill: #558C89;
+}
+
+.bar:hover {
+  fill: #D9853B;
+}
+body{
+  background-color: #ECECEA;
+      margin: 0;
+    padding: 0;
+  color: #558C89;
+  font: monospace;
+  font-size: 28px;
+}
+
+.container {
+    position: relative;
+    width: 100%;
+}
+
+.headingCenter {
+    margin: auto;
+    width: 60%;
+    padding: 10px;
+    text-align: center;
+        border: 3px solid #D9853B;
+}
+.center {
+    margin: auto;
+    width: 60%;
+    padding: 10px;
+    text-align: center;
+}
+.d3-tip {
+  line-height: 1;
+  font-weight: bold;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 2px;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+  box-sizing: border-box;
+  display: inline;
+  font-size: 10px;
+  width: 100%;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.8);
+  content: "\25BC";
+  position: absolute;
+  text-align: center;
+}
+
+/* Style northward tooltips differently */
+.d3-tip.n:after {
+  margin: -1px 0 0 0;
+  top: 100%;
+  left: 0;
+}
+  </style>
+  <title>Graphs for GMT</title>
+</head>
+<body>
+<div class="container-fluid">
+<div class="headingCenter" style="margin-top: 15px;"">
+  <p>
+    <h2>Student Performance Reports</h2>
+  </p>
+</div>
+
+<br />
+<br />
+
+<div class="center">
+<h4>Select an option to view final averages. </h4>
+
+<form>
+<table style="display: inline-block; margin: auto;" id="myTable">
+  <tr id="row1"><td>Internet Access<input type="radio" id="query" name="myQuery" value="internet" onclick="draw(this.value)"></td>
+    </tr>
+  <tr><td>Past Failures<input type="radio" id="query" name="myQuery" value="failures" onclick="draw(this.value)"></td>
+  </tr>
+  <tr><td>Study Time<input type="radio" id="query" name="myQuery" value="studytime" onclick="draw(this.value)"></td>
+    </tr>
+  <tr><td>Absences<input type="radio" id="query" name="myQuery" value="absences" onclick="draw(this.value)"></td>
+    </tr>
+    <tr><td><button >Clear</button></td></tr>
+</table>
+</form>
+</div>
+
+<div id="myAnswer" class="center"></div>
+
+<script type="text/javascript">
+
+// Averages are the G3 (final grade) mean for each key
+// Keys are the independent upon which type of average we are interested in.
+var internetAverages;
+var failureAverages;
+var studyTimeAverages;
+var absencesAverages;
+
+    function process(d) {
+      var processed = {
+          G3: +d.G3,
+          traveltime: +d.traveltime,
+          health:  +d.health,
+          failures: d.failures,
+          studytime:  +d.studytime,
+          absences:  +d.absences,
+          internet: d.internet,
+          G1: +d.G1,
+          G2:  +d.G2
+      }
+      return processed;
+    }
+
+    var margin = {top: 20, right: 20, bottom: 30, left: 40},
+        width = 960 - margin.left - margin.right,
+        height = 500 - margin.top - margin.bottom;
+
+    var x = d3.scaleBand()
+              .range([0, width])
+              .padding(0.1);
+    var y = d3.scaleLinear()
+              .range([height, 0]);
+
+
+
+d3.csv("comma-student-mat.csv", function(error, rawdata) {
+  if (error) throw error;
+  //console.log("rawdata", rawdata);
+
+  var data = rawdata.map(process);
+ // console.log("data", data);
+  
+  var formatDecimal = d3.format("0.1f");
+
+
+
+  ///////////////////////////////////////////////////////////////////////
+  // for each unique value of internet, calculate average final grade
+      internetAverages = d3.nest()
+        .key(function(d) { return d.internet ;}).sortKeys(d3.ascending)
+        .rollup(function(v) {
+          return formatDecimal(d3.mean(v,function(g){return +g.G3;}));
+        })
+        .entries(data);
+      internetAverages.sort(function(a,b) { return a.key - b.key});
+
+      console.log("internetAverages",internetAverages);
+
+  ///////////////////////////////////////////////////////////////////////
+  // Get average  value by failure rate
+
+ failureAverages = d3.nest()
+      .key(function(d) { return d.failures ;}).sortKeys(d3.ascending)
+      .rollup(function(v) {
+        return formatDecimal(d3.mean(v,function(g){return +g.G3;}));
+      })
+      .entries(data);
+      failureAverages.sort(function(a,b) { return a.key - b.key });
+
+      console.log("failureAverages",failureAverages);
+  ///////////////////////////////////////////////////////////////////////
+  // Get average  value
+ studyTimeAverages = d3.nest()
+      .key(function(d) { return d.studytime ;}).sortKeys(d3.ascending)
+      .rollup(function(v) {
+        return formatDecimal(d3.mean(v,function(g){return +g.G3;}));
+      })
+      .entries(data);
+      studyTimeAverages.sort(function(a,b) { return a.key - b.key });
+
+      console.log("studyTimeAverages",studyTimeAverages);
+
+  ///////////////////////////////////////////////////////////////////////
+  // Get average  value
+  absencesAverages = d3.nest()
+      .key(function(d) { return d.absences ;}).sortKeys(d3.ascending)
+      .rollup(function(v) {
+        return formatDecimal(d3.mean(v,function(g){return +g.G3;}));
+      })
+      .entries(data);
+      absencesAverages.sort(function(a,b) { return a.key - b.key });
+
+      console.log("absencesAverages",absencesAverages);
+
+});
+
+
+function draw(val){
+  d3.select("#myAnswer").selectAll("*").remove();
+
+  if(val == "internet"){
+    var column = ["InternetvGrades"];
+    var header = d3.select("#myAnswer").selectAll("p")
+          .data(column)
+          .enter()
+          .append("p")
+          .style("color","#D9853B")
+          .text("Internet Access : Average Final");
+
+    // Create actual cell
+    d3.select("#myAnswer").selectAll("p")
+          .data(internetAverages, function(d){return d;})
+          .enter()
+          .append("p")
+          .style("color","#D9853B")
+          .text(function(d,i){return  d.key + " : " + d.value ;});
+    }
+
+   else if(val == "failures"){
+    var column = ["FailuresvGrades"];
+    var header = d3.select("#myAnswer").selectAll("p")
+          .data(column)
+          .enter()
+          .append("p")
+          .style("color","#D9853B")
+          .text("Previous Failures : Average Final");
+
+    d3.select("#myAnswer").selectAll("p")
+          .data(failureAverages, function(d){return d;})
+          .enter()
+          .append("p")
+          .style("color","#D9853B")
+          .text(function(d,i){return  d.key + ": " + d.value ;});
+    }
+  
+
+  else  if(val == "studytime"){
+    var column = ["StudyingvGrades"];
+    var header = d3.select("#myAnswer").selectAll("p")
+          .data(column)
+          .enter()
+          .append("p")
+          .style("color","#D9853B")
+          .text("Hours Studying : Average Final");
+
+    d3.select("#myAnswer").selectAll("p")
+          .data(studyTimeAverages, function(d){return d;})
+          .enter()
+          .append("p")
+          .style("color","#D9853B")
+          .text(function(d,i){return  d.key + ": " + d.value ;});
+    }
+  
+
+   else if(val == "absences"){
+    var column = ["AbsencesvGrades"];
+    var header = d3.select("#myAnswer").selectAll("p")
+          .data(column)
+          .enter()
+          .append("p")
+          .style("color","#D9853B")
+          .text("Absences : Average Final");
+
+
+    d3.select("#myAnswer").selectAll("p")
+          .data(absencesAverages, function(d){return d;})
+          .enter()
+          .append("p")
+          .style("color","#D9853B")
+          .text(function(d,i){return  d.key + ": " + d.value ;});
+    }
+  }
+
+</script>
+<br />
+<br />
+  <!-- First Graph: Travel Time vs. Final Grade -->
+  <script type="text/javascript" src="travelGraph.js"></script>
+  <!-- Second Graph: Health vs. Final Grade -->
+  <script type="text/javascript" src="healthGraph.js"></script>
+  <!-- Third Graph: family size vs. Final Grade -->
+  <script type="text/javascript" src="G1Graph.js"></script>
+<br />
+<br />
+</div>
+</body>
